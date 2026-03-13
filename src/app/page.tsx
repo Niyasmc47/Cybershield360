@@ -396,11 +396,13 @@ export default function Home() {
                   Bring CyberShield directly into your Discord server. Scan suspicious links, broadcast real-time threat alerts, and track your guild&apos;s cybersecurity leaderboard — all with slash commands.
                 </p>
                 <a
-                  href="#"
+                  href="https://discord.com/api/oauth2/authorize?client_id=1391726803768578151&permissions=268435496&scope=bot%20applications.commands"
+                  target="_blank"
+                  rel="noreferrer"
                   className="inline-flex items-center gap-2 rounded border border-neon-green bg-neon-green px-6 py-3 font-mono font-bold text-black transition hover:bg-neon-green/80 hover:shadow-[0_0_20px_rgba(13,242,89,0.3)]"
                 >
                   <MessageSquare size={18} />
-                  Coming Soon!
+                  Invite to Discord
                 </a>
               </div>
             </div>

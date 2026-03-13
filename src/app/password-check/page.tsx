@@ -221,24 +221,15 @@ export default function PasswordCheck() {
                         </div>
                     </div>
 
-                    {/* Crack Time Estimates */}
+                    {/* Brute Force Estimate */}
                     <div className="rounded-lg border border-slate-700 bg-surface/80 p-6 shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
                         <h3 className="text-xs font-bold text-secondary uppercase tracking-widest mb-5 flex items-center gap-2">
                             <span className="w-1 h-3 bg-neon-green rounded-full" />
-                            Crack Time Estimates
+                            Brute Force Time
                         </h3>
-                        <div className="grid sm:grid-cols-2 gap-4">
-                            {[
-                                { label: "Online (Throttled)", value: result.crack_times.online_throttled },
-                                { label: "Online (No Throttle)", value: result.crack_times.online_unthrottled },
-                                { label: "Offline (Slow Hash)", value: result.crack_times.offline_slow_hash },
-                                { label: "Offline (Fast Hash)", value: result.crack_times.offline_fast_hash },
-                            ].map((item) => (
-                                <div key={item.label} className="rounded border border-slate-700 bg-black p-4">
-                                    <div className="text-xs text-slate-500 uppercase tracking-widest mb-2">{item.label}</div>
-                                    <div className="text-sm font-bold text-neon-green">{item.value}</div>
-                                </div>
-                            ))}
+                        <div className="rounded border border-slate-700 bg-black p-4">
+                            <div className="text-xs text-slate-500 uppercase tracking-widest mb-2">Offline (Fast Hash)</div>
+                            <div className="text-sm font-bold text-neon-green">{result.crack_times.offline_fast_hash}</div>
                         </div>
                     </div>
 
