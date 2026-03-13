@@ -28,9 +28,5 @@ export function getBackendUrl() {
     return inferredUrl;
   }
 
-  if (parsedEnvUrl.hostname !== currentHost) {
-    return inferredUrl;
-  }
-
-  return `${parsedEnvUrl.protocol}//${parsedEnvUrl.hostname}:${parsedEnvUrl.port || DEFAULT_BACKEND_PORT}`;
+  return `${parsedEnvUrl.protocol}//${parsedEnvUrl.host}`;
 }
