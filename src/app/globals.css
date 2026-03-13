@@ -1,32 +1,68 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-background: #0a0a0f;
-  --color-foreground: #e4e4e7;
+  --color-background: #050505;
+  --color-surface: #0a0a0a;
+  --color-foreground: #e5e5e5;
+  --color-secondary: #9ca3af;
+  
+  --color-neon-green: #0df259;
   --color-cyan-400: #22d3ee;
   --color-cyan-500: #06b6d4;
-  --color-cyan-600: #0891b2;
-  --color-blue-500: #3b82f6;
-  --color-blue-600: #2563eb;
   --color-slate-700: #334155;
   --color-slate-800: #1e293b;
   --color-slate-900: #0f172a;
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  
+  --font-sans: var(--font-inter), Arial, Helvetica, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), monospace;
 }
 
 body {
   background: var(--color-background);
   color: var(--color-foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
 }
 
+/* Animations */
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 20px rgba(6, 182, 212, 0.15); }
-  50% { box-shadow: 0 0 40px rgba(6, 182, 212, 0.3); }
+  0%, 100% { box-shadow: 0 0 15px rgba(13, 242, 89, 0.2); }
+  50% { box-shadow: 0 0 30px rgba(13, 242, 89, 0.4); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+.animate-blink {
+  animation: blink 1s step-end infinite;
+}
+
+.animate-scanline {
+  animation: scanline 12s linear infinite;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(13, 242, 89, 0.03) 50%,
+    transparent 100%
+  );
+  height: 80px;
+  width: 100%;
+  position: fixed;
+  pointer-events: none;
+  z-index: 9;
+  top: 0;
+  left: 0;
+  will-change: transform;
+  contain: strict;
 }

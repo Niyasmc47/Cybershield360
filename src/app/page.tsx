@@ -1,143 +1,346 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { ShieldAlert, Terminal, ShieldCheck, Activity, Key, UploadCloud, Database, MessageSquare, Flag, CheckCircle, Users } from "lucide-react";
+import { getBackendUrl } from "@/lib/backend-url";
+import GameClient from "@/lib/game-client";
+import AccountScoreBar from "@/components/account-score-bar";
+import { getUser, refreshSessionFromDb, setSession, setTotalScore } from "@/lib/session";
+
 export default function Home() {
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [authData, setAuthData] = useState({ username: "", email: "", password: "" });
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authMessage, setAuthMessage] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [communityUrl, setCommunityUrl] = useState("");
+  const [communityReason, setCommunityReason] = useState("");
+  const [communityLoading, setCommunityLoading] = useState(false);
+  const [communityMsg, setCommunityMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [communityList, setCommunityList] = useState<{ domain: string; reported_count: number; reason?: string }[]>([]);
+  const [logs, setLogs] = useState<string[]>([
+    "[SYSTEM] INITIATING SECURE CONNECTION...",
+    "[SYSTEM] VERIFYING ENCRYPTION PROTOCOLS...",
+    "[SUCCESS] UPLINK ESTABLISHED. PORT 443 SECURE.",
+  ]);
+  const [currentTime, setCurrentTime] = useState("");
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [currentYear, setCurrentYear] = useState(2024);
+
+  useEffect(() => {
+    // Set hydration flag and initialize time on client only
+    setIsHydrated(true);
+    setCurrentTime(new Date().toLocaleTimeString('en-US', { hour12: false }));
+    setCurrentYear(new Date().getFullYear());
+
+    const existingUser = getUser();
+    setIsLoggedIn(!!existingUser);
+
+    // Re-evaluate login state whenever session changes (e.g. logout from AccountScoreBar)
+    const onSessionChange = () => {
+      setIsLoggedIn(!!getUser());
+    };
+    window.addEventListener("cybershield-session-updated", onSessionChange);
+    window.addEventListener("storage", onSessionChange);
+
+    // Load community scam list
+    fetch(`${getBackendUrl()}/api/community/list`)
+      .then(r => r.json())
+      .then(d => Array.isArray(d) && setCommunityList(d.slice(0, 8)))
+      .catch(() => {});
+
+    const logMessages = [
+      "[ALERT] UNAUTHORIZED ACCESS ATTEMPT BLOCKED: 192.168.1.104",
+      "[SCAN] NODE 7 STATUS: NOMINAL",
+      "[SYSTEM] UPDATING THREAT DEFINITIONS...",
+      "[SUCCESS] THREAT DB v4.9.2 LOADED",
+      "[SCAN] COMMENCING DEEP PACKET INSPECTION...",
+      "[INFO] 4,291 PACKETS ANALYZED. 0 ANOMALIES FOUND.",
+    ];
+
+    let index = 0;
+    const interval = setInterval(() => {
+      setLogs((prev) => {
+        const newLogs = [...prev, logMessages[index]];
+        if (newLogs.length > 6) newLogs.shift();
+        return newLogs;
+      });
+      index = (index + 1) % logMessages.length;
+    }, 3000);
+
+    // Update time every second
+    const timeInterval = setInterval(() => {
+      setCurrentTime(new Date().toLocaleTimeString('en-US', { hour12: false }));
+    }, 1000);
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(timeInterval);
+      window.removeEventListener("cybershield-session-updated", onSessionChange);
+      window.removeEventListener("storage", onSessionChange);
+    };
+  }, []);
+
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthMessage("");
+    setAuthLoading(true);
+
+    try {
+      const result =
+        authMode === "login"
+          ? await GameClient.login(authData.email, authData.password)
+          : await GameClient.register(authData.username, authData.email, authData.password);
+
+      setSession(result.token, result.user, result.user.total_score ?? 0);
+      const refreshedUser = await refreshSessionFromDb(result.token);
+      setTotalScore(refreshedUser?.total_score ?? result.user.total_score ?? 0);
+      setIsLoggedIn(true);
+      setAuthMessage(`Welcome ${refreshedUser?.username || result.user.username}. Account is now active for all features.`);
+      setAuthData({ username: "", email: "", password: "" });
+    } catch (error: any) {
+      setAuthMessage(error?.message || "Authentication failed. Check backend connection.");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   return (
-    <main className="min-h-screen bg-[#0a0a0f] text-gray-100">
+    <main className="min-h-screen bg-background text-foreground font-sans relative overflow-hidden">
+      {/* Global Scanline Effect */}
+      <div className="animate-scanline" />
+
       {/* Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-slate-800/60 bg-[#0a0a0f]/80 backdrop-blur-xl">
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-neon-green/20 bg-[#050505]/95">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <a href="#" className="flex items-center gap-2 text-xl font-bold">
-            <ShieldIcon />
+          <Link href="/" className="flex items-center gap-3 text-xl font-bold font-mono tracking-wider group">
+            <Terminal className="text-neon-green group-hover:animate-pulse" />
             <span>
-              Cyber<span className="text-cyan-400">Shield</span> 360
+              Cyber<span className="text-neon-green">Shield</span> 360
             </span>
-          </a>
-          <div className="hidden items-center gap-8 text-sm text-gray-400 md:flex">
-            <a href="#features" className="transition hover:text-cyan-400">
+          </Link>
+          <div className="hidden items-center gap-8 text-sm text-secondary font-mono md:flex">
+            <a href="#features" className="transition hover:text-neon-green hover:underline decoration-neon-green/50 underline-offset-4">
               Features
             </a>
-            <a href="#extension" className="transition hover:text-cyan-400">
+            <a href="#extension" className="transition hover:text-neon-green hover:underline decoration-neon-green/50 underline-offset-4">
               Extension
             </a>
-            <a href="#discord" className="transition hover:text-cyan-400">
+            <a href="#discord" className="transition hover:text-neon-green hover:underline decoration-neon-green/50 underline-offset-4">
               Discord
             </a>
-            <a href="#learn" className="transition hover:text-cyan-400">
-              Learn
+            <a href="/learn" className="transition hover:text-neon-green hover:underline decoration-neon-green/50 underline-offset-4">
+              Awareness Hub
             </a>
+            <Link href="/website-check" className="transition hover:text-neon-green hover:underline decoration-neon-green/50 underline-offset-4">
+              Risk Detector
+            </Link>
           </div>
-          <a
-            href="#features"
-            className="rounded-lg bg-cyan-500 px-4 py-2 text-sm font-medium text-black transition hover:bg-cyan-400"
-          >
-            Get Started
-          </a>
+          <AccountScoreBar />
         </div>
       </nav>
 
-      {/* Hero */}
-      <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 pt-20 text-center">
-        {/* Background grid */}
+      {/* Hero Section */}
+      <section className="relative flex min-h-screen flex-col items-center justify-center px-6 pt-20 text-center">
+        {/* Hacker grid background */}
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.03]"
+          className="pointer-events-none absolute inset-0 opacity-[0.05]"
           style={{
             backgroundImage:
-              "linear-gradient(rgba(6,182,212,.4) 1px, transparent 1px), linear-gradient(90deg, rgba(6,182,212,.4) 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
+              "linear-gradient(rgba(13, 242, 89, 0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(13, 242, 89, 0.4) 1px, transparent 1px)",
+            backgroundSize: "40px 40px",
           }}
         />
-        {/* Glow */}
-        <div className="pointer-events-none absolute top-1/4 left-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-500/10 blur-[120px]" />
 
-        <div className="relative z-10 mx-auto max-w-4xl">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/5 px-4 py-1.5 text-sm text-cyan-400">
-            <span className="inline-block h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
-            AI-Powered Cybersecurity Platform
+        {/* Glow */}
+        <div className="pointer-events-none absolute top-1/4 left-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-neon-green/5 blur-[120px]" />
+
+        <div className="relative z-10 mx-auto max-w-5xl w-full grid lg:grid-cols-2 gap-12 items-center text-left">
+
+          <div>
+            <div className="mb-6 inline-flex items-center gap-2 rounded border border-neon-green/30 bg-neon-green/5 px-3 py-1 font-mono text-xs text-neon-green tracking-widest">
+              <span className="inline-block h-2 w-2 rounded-full bg-neon-green animate-blink" />
+              System Status: Online
+            </div>
+
+            <h1 className="mb-6 font-mono text-5xl font-bold leading-tight tracking-tighter sm:text-6xl text-foreground">
+              Cyber<span className="text-neon-green">Shield</span>
+              <br />
+              <span className="text-neon-green">360</span>
+            </h1>
+
+            <p className="mb-4 max-w-lg text-lg text-secondary font-mono">
+              <span className="text-neon-green opacity-50">{">"} </span>
+              Cybersecurity Awareness Platform
+            </p>
+
+            <p className="mb-10 max-w-lg text-sm text-secondary leading-relaxed">
+              Equip yourself with elite cyber-defenses. Detect real-time anomalies, train against phishing vectors, and monitor your personal data surface layer.
+            </p>
+
+            <div className="flex flex-wrap items-center gap-4 font-mono text-sm">
+              <a
+                href="#"
+                className="group rounded border border-neon-green bg-neon-green px-6 py-3 font-bold text-black transition hover:bg-neon-green/90 hover:shadow-[0_0_20px_rgba(13,242,89,0.4)]"
+              >
+                Get Started <span className="inline-block transition group-hover:translate-x-1">{"->"}</span>
+              </a>
+              <Link
+                href="/learn"
+                className="rounded border border-slate-700 bg-surface px-6 py-3 font-bold text-secondary transition hover:border-neon-green/50 hover:text-neon-green"
+              >
+                Explore Awareness Hub
+              </Link>
+              <Link
+                href="/games"
+                className="rounded border border-slate-700 bg-surface px-6 py-3 font-bold text-secondary transition hover:border-neon-green/50 hover:text-neon-green"
+              >
+                Explore our Games
+              </Link>
+              <Link
+                href="/password-check"
+                className="rounded border border-slate-700 bg-surface px-6 py-3 font-bold text-secondary transition hover:border-neon-green/50 hover:text-neon-green"
+              >
+                Check My Password
+              </Link>
+              <Link
+                href="/website-check"
+                className="rounded border border-slate-700 bg-surface px-6 py-3 font-bold text-secondary transition hover:border-red-500/50 hover:text-red-400"
+              >
+                Scan a Website
+              </Link>
+            </div>
           </div>
 
-          <h1 className="mb-6 text-5xl font-bold leading-tight tracking-tight sm:text-6xl md:text-7xl">
-            Cyber<span className="text-cyan-400">Shield</span>{" "}
-            <span className="text-cyan-400">360</span>
-          </h1>
+          <div className="space-y-4">
+            {!isLoggedIn && (
+              <div className="rounded-lg border border-neon-green/30 bg-black/80 backdrop-blur-sm p-4 shadow-[0_0_30px_rgba(13,242,89,0.05)] relative overflow-hidden">
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex gap-2 text-xs font-mono">
+                    <button
+                      onClick={() => setAuthMode("login")}
+                      className={`px-3 py-1 rounded border ${authMode === "login" ? "border-neon-green text-neon-green" : "border-slate-700 text-secondary"}`}
+                    >
+                      Login
+                    </button>
+                    <button
+                      onClick={() => setAuthMode("register")}
+                      className={`px-3 py-1 rounded border ${authMode === "register" ? "border-neon-green text-neon-green" : "border-slate-700 text-secondary"}`}
+                    >
+                      Register
+                    </button>
+                  </div>
+                  <span className="font-mono text-xs text-neon-green/50 tracking-widest">Account Access</span>
+                </div>
 
-          <p className="mx-auto mb-4 max-w-2xl text-lg text-gray-400 sm:text-xl">
-            AI-Powered Cybersecurity Awareness and Protection Platform
-          </p>
+                <form onSubmit={handleAuthSubmit} className="space-y-3 font-mono text-sm">
+                  {authMode === "register" && (
+                    <input
+                      value={authData.username}
+                      onChange={(e) => setAuthData((prev) => ({ ...prev, username: e.target.value }))}
+                      placeholder="Username"
+                      className="w-full rounded border border-slate-700 bg-surface px-3 py-2 text-foreground outline-none focus:border-neon-green"
+                      required
+                    />
+                  )}
+                  <input
+                    type="email"
+                    value={authData.email}
+                    onChange={(e) => setAuthData((prev) => ({ ...prev, email: e.target.value }))}
+                    placeholder="Email"
+                    className="w-full rounded border border-slate-700 bg-surface px-3 py-2 text-foreground outline-none focus:border-neon-green"
+                    required
+                  />
+                  <input
+                    type="password"
+                    value={authData.password}
+                    onChange={(e) => setAuthData((prev) => ({ ...prev, password: e.target.value }))}
+                    placeholder="Password"
+                    className="w-full rounded border border-slate-700 bg-surface px-3 py-2 text-foreground outline-none focus:border-neon-green"
+                    required
+                  />
+                  <button
+                    type="submit"
+                    disabled={authLoading}
+                    className="w-full rounded border border-neon-green bg-neon-green/10 px-4 py-2 text-sm font-mono font-bold text-neon-green transition hover:bg-neon-green hover:text-black disabled:opacity-50"
+                  >
+                    {authLoading ? "Processing..." : authMode === "login" ? "Login" : "Create Account"}
+                  </button>
+                </form>
 
-          <p className="mx-auto mb-10 max-w-2xl text-base text-gray-500">
-            CyberShield 360 helps you stay safe online through cybersecurity
-            awareness, real-time threat detection, and personal data risk
-            monitoring — all in one platform.
-          </p>
+                {authMessage && <p className="mt-3 text-xs text-secondary">{authMessage}</p>}
+              </div>
+            )}
 
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <a
-              href="#"
-              className="group rounded-lg bg-cyan-500 px-6 py-3 font-semibold text-black transition hover:bg-cyan-400 hover:shadow-[0_0_30px_rgba(6,182,212,0.4)]"
-            >
-              Test Your Cyber IQ
-              <span className="ml-2 inline-block transition group-hover:translate-x-1">
-                →
-              </span>
-            </a>
-            <a
-              href="#learn"
-              className="rounded-lg border border-slate-700 bg-slate-800/50 px-6 py-3 font-semibold transition hover:border-cyan-500/50 hover:bg-slate-800"
-            >
-              Explore Awareness Hub
-            </a>
-            <a
-              href="#extension"
-              className="rounded-lg border border-slate-700/50 px-6 py-3 text-sm text-gray-400 transition hover:border-cyan-500/30 hover:text-cyan-400"
-            >
-              ↓ Download Chrome Extension
-            </a>
+            <div className="rounded-lg border border-neon-green/30 bg-black/80 backdrop-blur-sm p-4 h-80 flex flex-col shadow-[0_0_30px_rgba(13,242,89,0.05)] relative overflow-hidden">
+              <div className="flex items-center justify-between border-b border-neon-green/20 pb-2 mb-4">
+                <div className="flex gap-2">
+                  <div className="w-3 h-3 rounded-full bg-rose-500/50"></div>
+                  <div className="w-3 h-3 rounded-full bg-yellow-500/50"></div>
+                  <div className="w-3 h-3 rounded-full bg-neon-green/50"></div>
+                </div>
+                <span className="font-mono text-xs text-neon-green/50 tracking-widest">Live System Logs</span>
+              </div>
+              <div className="flex-1 font-mono text-xs sm:text-sm text-neon-green/80 flex flex-col justify-end space-y-2 opacity-90 relative z-10">
+                {logs.map((log, i) => (
+                  <div key={i} className="flex gap-2">
+                    <span className="text-slate-600">[{isHydrated ? currentTime : "00:00:00"}]</span>
+                    <span className={log.includes("ERROR") || log.includes("BLOCKED") ? "text-rose-400" : log.includes("SUCCESS") ? "text-emerald-400" : ""}>{log}</span>
+                  </div>
+                ))}
+                <div className="flex gap-2 animate-pulse mt-2">
+                  <span className="text-slate-600">[{isHydrated ? currentTime : "00:00:00"}]</span>
+                  <span>_</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Scroll hint */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce text-gray-600">
-          <svg
-            width="24"
-            height="24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-          >
-            <path d="M12 5v14M5 12l7 7 7-7" />
-          </svg>
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce text-neon-green/50 font-mono text-xs">
+          Scroll Down
         </div>
       </section>
 
       {/* Features */}
-      <section id="features" className="relative px-6 py-24">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-16 text-center">
+      <section id="features" className="relative px-6 py-24 bg-surface/50 border-b border-slate-900">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-16 font-mono">
+            <div className="mb-2 inline-flex items-center gap-2 rounded border border-neon-green/20 bg-neon-green/5 px-3 py-1 text-xs text-neon-green">
+              // Core Features
+            </div>
             <h2 className="mb-4 text-3xl font-bold sm:text-4xl">
-              What CyberShield 360{" "}
-              <span className="text-cyan-400">Offers</span>
+              System <span className="text-neon-green">Capabilities</span>
             </h2>
-            <p className="mx-auto max-w-xl text-gray-500">
-              Everything you need to understand, detect, and defend against
-              modern cyber threats.
+            <p className="max-w-xl text-secondary text-sm">
+              Advanced heuristics and interactive training protocols to harden your personal digital perimeter.
             </p>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             <FeatureCard
-              icon={<BookIcon />}
-              title="Cybersecurity Awareness"
-              description="Interactive lessons, scam examples, and guides that help you understand common cyber threats and stay one step ahead."
+              icon={<Database />}
+              title="Awareness Database"
+              description="Interactive lessons, scam examples, and guides mapped to modern threat matrices."
             />
             <FeatureCard
-              icon={<BrainIcon />}
+              icon={<Activity />}
               title="Cyber IQ Test"
-              description="A gamified quiz that tests your ability to recognize phishing, scams, and unsafe online behavior. Track your score and improve."
+              description="Gamified simulations tracking your anomaly detection capabilities. Score ranks dynamically."
               highlighted
             />
             <FeatureCard
-              icon={<ShieldCheckIcon />}
-              title="Real-Time Protection"
-              description="A browser extension that automatically detects suspicious websites and warns you about potential phishing or scam pages."
+              icon={<ShieldCheck />}
+              title="Real-Time Scanner"
+              description="Browser-level defensive extension detecting injected nodes and phishing domains."
+            />
+            <FeatureCard
+              icon={<Key />}
+              title="Password Strength Checker"
+              description="Advanced entropy analysis tool. Calculates brute-force resistance and measures credential viability."
             />
           </div>
         </div>
@@ -145,46 +348,48 @@ export default function Home() {
 
       {/* Browser Extension */}
       <section id="extension" className="px-6 py-24">
-        <div className="mx-auto max-w-6xl">
-          <div className="overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 to-[#0a0a0f]">
-            <div className="grid items-center gap-8 p-8 md:grid-cols-2 md:p-12">
+        <div className="mx-auto max-w-7xl">
+          <div className="overflow-hidden rounded border border-neon-green/30 bg-gradient-to-br from-surface to-background relative">
+            {/* Tech lines top right */}
+            <div className="absolute top-0 right-0 p-4 opacity-20">
+              <svg width="100" height="100" viewBox="0 0 100 100" fill="none" stroke="var(--color-neon-green)">
+                <path d="M100 0 L50 50 L50 100 M80 0 L30 50 L0 50" strokeWidth="1" />
+              </svg>
+            </div>
+
+            <div className="grid items-center gap-8 p-8 md:grid-cols-2 md:p-12 relative z-10">
               <div>
-                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-400">
-                  CHROME EXTENSION
+                <div className="mb-4 inline-flex items-center gap-2 rounded border border-neon-green/20 bg-neon-green/10 px-3 py-1 font-mono text-xs font-medium text-neon-green tracking-wider">
+                  &gt; Browser Extension
                 </div>
-                <h2 className="mb-4 text-3xl font-bold sm:text-4xl">
-                  Stay Protected While You{" "}
-                  <span className="text-cyan-400">Browse</span>
+                <h2 className="mb-4 font-mono text-3xl font-bold sm:text-4xl">
+                  Browser <span className="text-neon-green">Protection</span>
                 </h2>
-                <p className="mb-6 text-gray-400 leading-relaxed">
-                  Our Chrome extension analyzes websites in real time and detects
-                  phishing domains, suspicious login forms, and risky websites —
-                  so you can browse with confidence.
+                <p className="mb-8 text-secondary text-sm font-mono leading-relaxed">
+                  Install the CyberShield browser extension to activate real-time packet analysis. Detects phishing vectors, intercepts suspicious payloads, and secures your active session.
                 </p>
                 <a
-                  href="#"
-                  className="inline-flex items-center gap-2 rounded-lg bg-cyan-500 px-6 py-3 font-semibold text-black transition hover:bg-cyan-400 hover:shadow-[0_0_30px_rgba(6,182,212,0.4)]"
+                  href="/chrome_extension.zip"
+                  download="chrome_extension.zip"
+                  className="inline-flex items-center gap-2 rounded border border-neon-green bg-neon-green px-6 py-3 font-mono font-bold text-black transition hover:bg-neon-green/80 hover:shadow-[0_0_20px_rgba(13,242,89,0.3)]"
                 >
-                  <ChromeIcon />
-                  Download Chrome Extension
+                  <Key size={18} />
+                  Download Extension
                 </a>
               </div>
               <div className="flex items-center justify-center">
-                <div className="relative flex h-64 w-full items-center justify-center rounded-xl border border-slate-800 bg-slate-900/50">
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-cyan-500/5 to-transparent" />
-                  <div
-                    className="relative text-center"
-                    style={{ animation: "float 3s ease-in-out infinite" }}
-                  >
-                    <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-400">
-                      <ShieldCheckIcon size={32} />
-                    </div>
-                    <p className="text-sm font-medium text-cyan-400">
-                      Real-Time Scanning
-                    </p>
-                    <p className="text-xs text-gray-600">
-                      Phishing &amp; Scam Detection
-                    </p>
+                <div className="relative flex h-64 w-full items-center justify-center rounded border border-neon-green/30 bg-black shadow-[inset_0_0_30px_rgba(13,242,89,0.05)] overflow-hidden">
+                  <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHBhdGggZD0iTTIwIDBMMCAyMEwyMCA0MEw0MCAyMEwyMCAweiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJyZ2JhKDEzLCAyNDIsIDg5LCAwLjA1KSIvPjwvc3ZnPg==')] bg-[length:20px_20px] opacity-30" />
+
+                  <div className="relative h-52 w-[90%] overflow-hidden rounded border border-neon-green/20 bg-black/40 backdrop-blur-sm">
+                    <Image
+                      src="/images/extension-status.png"
+                      alt="Browser extension status preview"
+                      fill
+                      className="object-contain"
+                      priority
+                      unoptimized
+                    />
                   </div>
                 </div>
               </div>
@@ -194,48 +399,49 @@ export default function Home() {
       </section>
 
       {/* Discord Bot */}
-      <section id="discord" className="px-6 py-24">
-        <div className="mx-auto max-w-6xl">
-          <div className="overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-br from-[#0d0d1a] to-[#0a0a0f]">
-            <div className="grid items-center gap-8 p-8 md:grid-cols-2 md:p-12">
-              <div className="flex items-center justify-center md:order-1">
-                <div className="relative flex h-64 w-full items-center justify-center rounded-xl border border-slate-800 bg-slate-900/50">
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-indigo-500/5 to-transparent" />
-                  <div
-                    className="relative text-center"
-                    style={{ animation: "float 3s ease-in-out infinite 0.5s" }}
-                  >
-                    <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-400">
-                      <DiscordIcon />
-                    </div>
-                    <p className="text-sm font-medium text-indigo-400">
-                      CyberShield Bot
-                    </p>
-                    <p className="text-xs text-gray-600">
-                      Tips &amp; Threat Alerts
-                    </p>
+      <section id="discord" className="px-6 py-24 bg-surface/30">
+        <div className="mx-auto max-w-7xl">
+          <div className="overflow-hidden rounded border border-neon-green/30 bg-gradient-to-br from-surface to-background relative">
+            {/* Tech lines top right */}
+            <div className="absolute top-0 right-0 p-4 opacity-20">
+              <svg width="100" height="100" viewBox="0 0 100 100" fill="none" stroke="var(--color-neon-green)">
+                <path d="M100 0 L50 50 L50 100 M80 0 L30 50 L0 50" strokeWidth="1" />
+              </svg>
+            </div>
+
+            <div className="grid items-center gap-8 p-8 md:grid-cols-2 md:p-12 relative z-10">
+              {/* Right side first on this card for visual variety */}
+              <div className="flex items-center justify-center order-last md:order-first">
+                <div className="relative flex h-64 w-full items-center justify-center rounded border border-neon-green/30 bg-black shadow-[inset_0_0_30px_rgba(13,242,89,0.05)] overflow-hidden">
+                  <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHBhdGggZD0iTTIwIDBMMCAyMEwyMCA0MEw0MCAyMEwyMCAweiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJyZ2JhKDEzLCAyNDIsIDg5LCAwLjA1KSIvPjwvc3ZnPg==')] bg-[length:20px_20px] opacity-30" />
+                  <div className="relative h-52 w-[90%] overflow-hidden rounded border border-neon-green/20 bg-black/40 backdrop-blur-sm">
+                    <Image
+                      src="/images/extension-status.png"
+                      alt="Discord bot preview"
+                      fill
+                      className="object-contain"
+                      unoptimized
+                    />
                   </div>
                 </div>
               </div>
-              <div className="md:order-0">
-                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1 text-xs font-medium text-indigo-400">
-                  DISCORD BOT
+
+              <div>
+                <div className="mb-4 inline-flex items-center gap-2 rounded border border-neon-green/20 bg-neon-green/10 px-3 py-1 font-mono text-xs font-medium text-neon-green tracking-wider">
+                  &gt; Discord Integration
                 </div>
-                <h2 className="mb-4 text-3xl font-bold sm:text-4xl">
-                  Get Security Alerts on{" "}
-                  <span className="text-indigo-400">Discord</span>
+                <h2 className="mb-4 font-mono text-3xl font-bold sm:text-4xl">
+                  Discord <span className="text-neon-green">Bot</span>
                 </h2>
-                <p className="mb-6 text-gray-400 leading-relaxed">
-                  Invite the CyberShield Discord bot to your server. Get
-                  cybersecurity tips, threat alerts, and stay updated on the
-                  latest scams — right where your community hangs out.
+                <p className="mb-8 text-secondary text-sm font-mono leading-relaxed">
+                  Bring CyberShield directly into your Discord server. Scan suspicious links, broadcast real-time threat alerts, and track your guild&apos;s cybersecurity leaderboard — all with slash commands.
                 </p>
                 <a
                   href="#"
-                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-500 px-6 py-3 font-semibold text-white transition hover:bg-indigo-400 hover:shadow-[0_0_30px_rgba(99,102,241,0.4)]"
+                  className="inline-flex items-center gap-2 rounded border border-neon-green bg-neon-green px-6 py-3 font-mono font-bold text-black transition hover:bg-neon-green/80 hover:shadow-[0_0_20px_rgba(13,242,89,0.3)]"
                 >
-                  <DiscordIcon />
-                  Invite Discord Bot
+                  <MessageSquare size={18} />
+                  Coming Soon!
                 </a>
               </div>
             </div>
@@ -243,232 +449,161 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Cyber Awareness / Learn */}
-      <section id="learn" className="px-6 py-24">
-        <div className="mx-auto max-w-4xl text-center">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-400">
-            AWARENESS HUB
-          </div>
-          <h2 className="mb-4 text-3xl font-bold sm:text-4xl">
-            Learn Cybersecurity Through{" "}
-            <span className="text-cyan-400">Interactive Challenges</span>
-          </h2>
-          <p className="mx-auto mb-10 max-w-2xl text-gray-400 leading-relaxed">
-            Master cybersecurity through quizzes, phishing detection games, and
-            simulated scam scenarios. Build real-world skills that keep you and
-            your data safe.
-          </p>
+      {/* Community Scam Reporter */}
+      <section id="community" className="px-6 py-24">
+        <div className="mx-auto max-w-7xl">
+          <div className="overflow-hidden rounded border border-red-500/30 bg-gradient-to-br from-surface to-background relative">
+            <div className="absolute top-0 right-0 p-4 opacity-20">
+              <svg width="100" height="100" viewBox="0 0 100 100" fill="none" stroke="#ef4444">
+                <path d="M100 0 L50 50 L50 100 M80 0 L30 50 L0 50" strokeWidth="1" />
+              </svg>
+            </div>
+            <div className="grid items-start gap-8 p-8 md:grid-cols-2 md:p-12 relative z-10">
+              {/* Left — form */}
+              <div>
+                <div className="mb-4 inline-flex items-center gap-2 rounded border border-red-500/20 bg-red-500/10 px-3 py-1 font-mono text-xs font-medium text-red-400 tracking-wider">
+                  &gt; Community Intel
+                </div>
+                <h2 className="mb-4 font-mono text-3xl font-bold sm:text-4xl">
+                  Report a <span className="text-red-400">Scam Site</span>
+                </h2>
+                <p className="mb-6 text-secondary text-sm font-mono leading-relaxed">
+                  Found a scam, phishing, or dangerous website? Submit it here. It gets stored in the CyberShield community database and used to protect everyone during Website Risk scans.
+                </p>
+                <div className="space-y-3 font-mono text-sm">
+                  <input
+                    value={communityUrl}
+                    onChange={e => setCommunityUrl(e.target.value)}
+                    placeholder="https://scam-site.com"
+                    className="w-full rounded border border-slate-700 bg-surface px-3 py-2 text-foreground outline-none focus:border-red-400 placeholder:text-secondary/40"
+                  />
+                  <input
+                    value={communityReason}
+                    onChange={e => setCommunityReason(e.target.value)}
+                    placeholder="Why is it suspicious? (optional)"
+                    className="w-full rounded border border-slate-700 bg-surface px-3 py-2 text-foreground outline-none focus:border-red-400 placeholder:text-secondary/40"
+                  />
+                  <button
+                    disabled={communityLoading || !communityUrl.trim()}
+                    onClick={async () => {
+                      setCommunityLoading(true);
+                      setCommunityMsg(null);
+                      try {
+                        const res = await fetch(`${getBackendUrl()}/api/community/report`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ url: communityUrl.trim(), reason: communityReason.trim(), reporter: "anonymous" }),
+                        });
+                        const d = await res.json();
+                        if (res.ok) {
+                          setCommunityMsg({ ok: true, text: d.message || "Reported!" });
+                          setCommunityUrl("");
+                          setCommunityReason("");
+                          // Refresh list
+                          fetch(`${getBackendUrl()}/api/community/list`).then(r => r.json()).then(d => Array.isArray(d) && setCommunityList(d.slice(0, 8))).catch(() => {});
+                        } else {
+                          setCommunityMsg({ ok: false, text: d.error || "Failed to report." });
+                        }
+                      } catch {
+                        setCommunityMsg({ ok: false, text: "Could not connect to backend." });
+                      } finally {
+                        setCommunityLoading(false);
+                      }
+                    }}
+                    className="w-full rounded border border-red-500 bg-red-500/10 px-4 py-2 font-bold text-red-400 transition hover:bg-red-500 hover:text-black disabled:opacity-40"
+                  >
+                    {communityLoading ? "Submitting..." : "Submit Report"}
+                  </button>
+                  {communityMsg && (
+                    <div className={`flex items-center gap-2 text-xs ${communityMsg.ok ? "text-neon-green" : "text-red-400"}`}>
+                      {communityMsg.ok ? <CheckCircle size={13} /> : <Flag size={13} />}
+                      {communityMsg.text}
+                    </div>
+                  )}
+                </div>
+              </div>
 
-          <div className="mb-10 grid gap-4 text-left sm:grid-cols-3">
-            <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-5 transition hover:border-cyan-500/30">
-              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-400 text-lg">
-                🎯
+              {/* Right — live list */}
+              <div>
+                <div className="flex items-center gap-2 mb-4 text-xs font-mono text-secondary uppercase tracking-widest">
+                  <Users size={13} />
+                  Community-Reported Sites
+                </div>
+                {communityList.length === 0 ? (
+                  <div className="rounded border border-slate-700 bg-black/40 p-6 text-center font-mono text-xs text-secondary">
+                    No reports yet. Be the first to submit a scam site.
+                  </div>
+                ) : (
+                  <ul className="space-y-2 font-mono text-xs">
+                    {communityList.map((site, i) => (
+                      <li key={i} className="flex items-center justify-between gap-3 rounded border border-red-500/20 bg-red-500/5 px-4 py-2">
+                        <span className="text-red-400 truncate flex items-center gap-2">
+                          <Flag size={11} className="shrink-0" />
+                          {site.domain}
+                        </span>
+                        <span className="shrink-0 text-secondary">{site.reported_count}x reported</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <Link
+                  href="/website-check"
+                  className="mt-4 inline-flex items-center gap-2 text-xs font-mono text-neon-green hover:underline decoration-neon-green/50"
+                >
+                  <ShieldCheck size={13} />
+                  Scan a website for risks -&gt;
+                </Link>
               </div>
-              <h3 className="mb-1 text-sm font-semibold">Phishing Detection</h3>
-              <p className="text-xs text-gray-500">
-                Spot fake emails &amp; websites
-              </p>
-            </div>
-            <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-5 transition hover:border-cyan-500/30">
-              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-400 text-lg">
-                🧩
-              </div>
-              <h3 className="mb-1 text-sm font-semibold">Scam Simulations</h3>
-              <p className="text-xs text-gray-500">
-                Practice in safe scenarios
-              </p>
-            </div>
-            <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-5 transition hover:border-cyan-500/30">
-              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-400 text-lg">
-                📊
-              </div>
-              <h3 className="mb-1 text-sm font-semibold">Track Progress</h3>
-              <p className="text-xs text-gray-500">
-                Monitor your cyber skills
-              </p>
             </div>
           </div>
-
-          <a
-            href="#"
-            className="inline-flex items-center gap-2 rounded-lg bg-cyan-500 px-8 py-3 font-semibold text-black transition hover:bg-cyan-400 hover:shadow-[0_0_30px_rgba(6,182,212,0.4)]"
-          >
-            Start Learning →
-          </a>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800/60 px-6 py-12">
-        <div className="mx-auto max-w-6xl">
-          <div className="grid gap-8 md:grid-cols-3">
-            <div>
-              <div className="mb-3 flex items-center gap-2 text-lg font-bold">
-                <ShieldIcon />
-                Cyber<span className="text-cyan-400">Shield</span> 360
+      <footer className="border-t border-neon-green/20 bg-black px-6 py-12 font-mono text-xs">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid gap-8 md:grid-cols-4">
+            <div className="col-span-2">
+              <div className="mb-4 flex items-center gap-2 text-lg font-bold">
+                <Terminal className="text-neon-green" size={20} />
+                Cyber<span className="text-neon-green">Shield</span> 360
               </div>
-              <p className="text-sm text-gray-500 leading-relaxed">
-                AI-powered cybersecurity awareness and protection platform.
-                Helping users stay safe online.
+              <p className="text-secondary leading-relaxed max-w-sm">
+                Advanced AI-driven threat mitigation and cybersecurity training platform. Designed for maximum resilience against class-4 security breaches.
               </p>
             </div>
             <div>
-              <h4 className="mb-3 text-sm font-semibold text-gray-300">
-                Quick Links
-              </h4>
-              <ul className="space-y-2 text-sm text-gray-500">
-                <li>
-                  <a href="#features" className="transition hover:text-cyan-400">
-                    Features
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#extension"
-                    className="transition hover:text-cyan-400"
-                  >
-                    Chrome Extension
-                  </a>
-                </li>
-                <li>
-                  <a href="#discord" className="transition hover:text-cyan-400">
-                    Discord Bot
-                  </a>
-                </li>
-                <li>
-                  <a href="#learn" className="transition hover:text-cyan-400">
-                    Awareness Hub
-                  </a>
-                </li>
+              <h4 className="mb-4 font-bold text-neon-green">Pages</h4>
+              <ul className="space-y-2 text-secondary">
+                <li><a href="#features" className="hover:text-neon-green hover:underline decoration-neon-green/50">Features</a></li>
+                <li><a href="#extension" className="hover:text-neon-green hover:underline decoration-neon-green/50">Chrome Extension</a></li>
+                <li><a href="#discord" className="hover:text-neon-green hover:underline decoration-neon-green/50">Discord Bot</a></li>
+                <li><a href="/learn" className="hover:text-neon-green hover:underline decoration-neon-green/50">Awareness Hub</a></li>
+                <li><Link href="/website-check" className="hover:text-neon-green hover:underline decoration-neon-green/50">Website Risk Detector</Link></li>
+                <li><a href="#community" className="hover:text-neon-green hover:underline decoration-neon-green/50">Report Scam Site</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="mb-3 text-sm font-semibold text-gray-300">
-                Connect
-              </h4>
-              <ul className="space-y-2 text-sm text-gray-500">
-                <li>
-                  <a
-                    href="https://github.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="transition hover:text-cyan-400"
-                  >
-                    GitHub
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="transition hover:text-cyan-400">
-                    Discord
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="transition hover:text-cyan-400">
-                    Contact
-                  </a>
-                </li>
+              <h4 className="mb-4 font-bold text-neon-green">Socials</h4>
+              <ul className="space-y-2 text-secondary">
+                <li><a href="#" className="hover:text-neon-green hover:underline decoration-neon-green/50">GitHub</a></li>
+                <li><a href="#" className="hover:text-neon-green hover:underline decoration-neon-green/50">Discord</a></li>
+                <li><a href="#" className="hover:text-neon-green hover:underline decoration-neon-green/50">Email Us</a></li>
               </ul>
             </div>
           </div>
-          <div className="mt-10 border-t border-slate-800/60 pt-6 text-center text-xs text-gray-600">
+          <div className="mt-12 border-t border-neon-green/10 pt-6 flex flex-col md:flex-row justify-between items-center text-secondary/50">
             <p>
-              © {new Date().getFullYear()} CyberShield 360. Built for the
-              hackathon. All rights reserved.
+              © {currentYear} CyberShield 360. All rights reserved.
+            </p>
+            <p className="mt-2 md:mt-0 flex gap-4">
+              <span>Uptime: 99.99%</span>
+              <span>Version: 4.0.2 Stable</span>
             </p>
           </div>
         </div>
       </footer>
     </main>
-  );
-}
-
-/* ─── Inline SVG Icon Components ─── */
-
-function ShieldIcon() {
-  return (
-    <svg
-      width="28"
-      height="28"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      viewBox="0 0 24 24"
-      className="text-cyan-400"
-    >
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
-  );
-}
-
-function BookIcon() {
-  return (
-    <svg
-      width="28"
-      height="28"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      viewBox="0 0 24 24"
-    >
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-      <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15z" />
-    </svg>
-  );
-}
-
-function BrainIcon() {
-  return (
-    <svg
-      width="28"
-      height="28"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      viewBox="0 0 24 24"
-    >
-      <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" />
-      <path d="M10 21h4" />
-      <path d="M9 9h6" />
-      <path d="M12 9v4" />
-    </svg>
-  );
-}
-
-function ShieldCheckIcon({ size = 28 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      viewBox="0 0 24 24"
-    >
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-      <path d="M9 12l2 2 4-4" />
-    </svg>
-  );
-}
-
-function ChromeIcon() {
-  return (
-    <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-      <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="1.5" />
-      <path
-        d="M21.17 8H12M3.95 6.06l4.5 7.79M9.54 21.94l4.5-7.79"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      />
-    </svg>
-  );
-}
-
-function DiscordIcon() {
-  return (
-    <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
-      <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
-    </svg>
   );
 }
 
@@ -487,24 +622,24 @@ function FeatureCard({
 }) {
   return (
     <div
-      className={`group relative rounded-2xl border p-6 transition-all duration-300 hover:-translate-y-1 ${
-        highlighted
-          ? "border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 to-transparent shadow-[0_0_30px_rgba(6,182,212,0.1)]"
-          : "border-slate-800 bg-slate-900/40 hover:border-cyan-500/20"
-      }`}
-      style={highlighted ? { animation: "pulse-glow 4s ease-in-out infinite" } : undefined}
+      className={`group relative rounded border p-6 font-mono transition-all duration-300 hover:-translate-y-1 ${highlighted
+        ? "border-neon-green/50 bg-neon-green/5 shadow-[0_0_20px_rgba(13,242,89,0.1)]"
+        : "border-slate-800 bg-surface/80 hover:border-neon-green/30 hover:bg-surface"
+        }`}
     >
+      <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-neon-green opacity-0 group-hover:opacity-100 transition-opacity translate-x-1 -translate-y-1"></div>
+      <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-neon-green opacity-0 group-hover:opacity-100 transition-opacity -translate-x-1 translate-y-1"></div>
+
       <div
-        className={`mb-4 flex h-12 w-12 items-center justify-center rounded-xl ${
-          highlighted
-            ? "bg-cyan-500/20 text-cyan-400"
-            : "bg-slate-800 text-gray-400 group-hover:text-cyan-400"
-        } transition`}
+        className={`mb-6 flex h-12 w-12 items-center justify-center rounded ${highlighted
+          ? "bg-neon-green/20 text-neon-green"
+          : "bg-slate-800 text-secondary group-hover:text-neon-green group-hover:bg-neon-green/10"
+          } transition-colors`}
       >
         {icon}
       </div>
-      <h3 className="mb-2 text-lg font-semibold">{title}</h3>
-      <p className="text-sm leading-relaxed text-gray-500">{description}</p>
+      <h3 className="mb-3 text-lg font-bold text-foreground">{title}</h3>
+      <p className="text-xs leading-relaxed text-secondary">{description}</p>
     </div>
   );
 }
