@@ -318,19 +318,6 @@ export default function WebsiteCheck() {
                 </section>
             )}
 
-            {/* API suggestion box (always visible) */}
-            <section className="px-6 max-w-3xl mx-auto mt-10 relative z-10">
-                <div className="rounded-lg border border-slate-700/50 bg-surface/40 p-5 font-mono text-xs text-secondary">
-                    <div className="font-bold text-neon-green mb-3 tracking-widest uppercase">Recommended Threat APIs (add to backend for deeper coverage)</div>
-                    <ul className="space-y-1.5">
-                        <li><span className="text-foreground">Google Safe Browsing</span> — safebrowsing.googleapis.com — industry-standard phishing/malware DB</li>
-                        <li><span className="text-foreground">VirusTotal</span> — virustotal.com/api — 70+ AV engines scan any URL, free tier 4 req/min</li>
-                        <li><span className="text-foreground">IPQualityScore</span> — ipqualityscore.com — fraud score, proxy/VPN/bot detection</li>
-                        <li><span className="text-foreground">PhishTank</span> — phishtank.com/api — community phishing URL database, free with API key</li>
-                        <li><span className="text-foreground">OpenPhish</span> — openphish.com — free phishing intelligence feed (no key needed)</li>
-                    </ul>
-                </div>
-            </section>
         </main>
     );
 }

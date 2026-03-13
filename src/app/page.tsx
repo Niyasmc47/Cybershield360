@@ -305,47 +305,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="relative px-6 py-24 bg-surface/50 border-b border-slate-900">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-16 font-mono">
-            <div className="mb-2 inline-flex items-center gap-2 rounded border border-neon-green/20 bg-neon-green/5 px-3 py-1 text-xs text-neon-green">
-              // Core Features
-            </div>
-            <h2 className="mb-4 text-3xl font-bold sm:text-4xl">
-              System <span className="text-neon-green">Capabilities</span>
-            </h2>
-            <p className="max-w-xl text-secondary text-sm">
-              Advanced heuristics and interactive training protocols to harden your personal digital perimeter.
-            </p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            <FeatureCard
-              icon={<Database />}
-              title="Awareness Database"
-              description="Interactive lessons, scam examples, and guides mapped to modern threat matrices."
-            />
-            <FeatureCard
-              icon={<Activity />}
-              title="Cyber IQ Test"
-              description="Gamified simulations tracking your anomaly detection capabilities. Score ranks dynamically."
-              highlighted
-            />
-            <FeatureCard
-              icon={<ShieldCheck />}
-              title="Real-Time Scanner"
-              description="Browser-level defensive extension detecting injected nodes and phishing domains."
-            />
-            <FeatureCard
-              icon={<Key />}
-              title="Password Strength Checker"
-              description="Advanced entropy analysis tool. Calculates brute-force resistance and measures credential viability."
-            />
-          </div>
-        </div>
-      </section>
-
       {/* Browser Extension */}
       <section id="extension" className="px-6 py-24">
         <div className="mx-auto max-w-7xl">
@@ -555,6 +514,47 @@ export default function Home() {
                 </Link>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section id="features" className="relative px-6 py-24 bg-surface/50 border-b border-slate-900">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-16 font-mono">
+            <div className="mb-2 inline-flex items-center gap-2 rounded border border-neon-green/20 bg-neon-green/5 px-3 py-1 text-xs text-neon-green">
+              // Core Features
+            </div>
+            <h2 className="mb-4 text-3xl font-bold sm:text-4xl">
+              System <span className="text-neon-green">Capabilities</span>
+            </h2>
+            <p className="max-w-xl text-secondary text-sm">
+              Advanced heuristics and interactive training protocols to harden your personal digital perimeter.
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <FeatureCard
+              icon={<Database />}
+              title="Awareness Database"
+              description="Interactive lessons, scam examples, and guides mapped to modern threat matrices."
+            />
+            <FeatureCard
+              icon={<Activity />}
+              title="Cyber IQ Test"
+              description="Gamified simulations tracking your anomaly detection capabilities. Score ranks dynamically."
+              highlighted
+            />
+            <FeatureCard
+              icon={<ShieldCheck />}
+              title="Real-Time Scanner"
+              description="Browser-level defensive extension detecting injected nodes and phishing domains."
+            />
+            <FeatureCard
+              icon={<Key />}
+              title="Password Strength Checker"
+              description="Advanced entropy analysis tool. Calculates brute-force resistance and measures credential viability."
+            />
           </div>
         </div>
       </section>
