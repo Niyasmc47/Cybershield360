@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { MessageSquareWarning, Terminal, CheckCircle, AlertTriangle, ChevronRight } from "lucide-react";
+import { MessageSquareWarning, Terminal, CheckCircle, AlertTriangle, ChevronRight, Clock3 } from "lucide-react";
 import AccountScoreBar from "@/components/account-score-bar";
 import { addTotalScore, getUser, syncScoreToDb } from "@/lib/session";
 
@@ -281,6 +281,7 @@ const scenarios: Scenario[] = [
             ];
 
 type GameState = "start" | "playing" | "summary";
+const DECISION_TIME_LIMIT = 20;
 
 interface Choice {
     scenarioId: number;
@@ -309,6 +310,7 @@ export default function ChatScamPage() {
     const [allChoices, setAllChoices] = useState<Choice[]>([]);
     const [lastFeedback, setLastFeedback] = useState<string | null>(null);
     const [showFeedback, setShowFeedback] = useState(false);
+    const [decisionTimeLeft, setDecisionTimeLeft] = useState(DECISION_TIME_LIMIT);
 
     const scenario = scenarios[scenarioIndex];
     const step = scenario?.steps[stepIndex];
@@ -321,7 +323,30 @@ export default function ChatScamPage() {
         return () => clearTimeout(t);
     }, [gameState, step, visibleMessages]);
 
+    useEffect(() => {
+        if (gameState !== "playing" || !step || step.type !== "decision" || showFeedback) return;
+        setDecisionTimeLeft(DECISION_TIME_LIMIT);
+    }, [gameState, scenarioIndex, stepIndex, showFeedback, step]);
+
+    useEffect(() => {
+        if (gameState !== "playing" || !step || step.type !== "decision" || showFeedback) return;
+
+        if (decisionTimeLeft <= 0) {
+            const safest = step.options?.reduce((best, current) =>
+                current.riskDelta < best.riskDelta ? current : best
+            );
+            if (safest) {
+                handleChoice(safest);
+            }
+            return;
+        }
+
+        const t = setTimeout(() => setDecisionTimeLeft((s) => s - 1), 1000);
+        return () => clearTimeout(t);
+    }, [gameState, step, showFeedback, decisionTimeLeft]);
+
     const handleChoice = (option: DecisionOption) => {
+        if (showFeedback) return;
         const newRisk = risk + option.riskDelta;
         setRisk(newRisk);
         setAllChoices((prev) => [...prev, { scenarioId: scenario.id, name: scenario.title, option }]);
@@ -416,8 +441,16 @@ export default function ChatScamPage() {
                                 <div className={`text-xs tracking-widest ${scenario.platformColor}`}>{scenario.platform}</div>
                                 <div className="text-sm font-bold">{scenario.contactName}</div>
                             </div>
-                            <div className="text-xs text-[#64748b]">
-                                SCENARIO {scenarioIndex + 1} / {scenarios.length}
+                            <div className="text-right">
+                                <div className="text-xs text-[#64748b]">
+                                    SCENARIO {scenarioIndex + 1} / {scenarios.length}
+                                </div>
+                                {step?.type === "decision" && !showFeedback && (
+                                    <div className="mt-1 inline-flex items-center gap-1 text-xs text-cyan-400">
+                                        <Clock3 size={12} />
+                                        {decisionTimeLeft}s
+                                    </div>
+                                )}
                             </div>
                         </div>
 

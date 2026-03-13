@@ -177,7 +177,7 @@ export default function Home() {
             </p>
 
             <p className="mb-10 max-w-lg text-sm text-secondary leading-relaxed">
-              Equip yourself with elite cyber-defenses. Detect real-time anomalies, train against phishing vectors, and monitor your personal data surface layer.
+              Gamified cybersecurity awareness and protection platform.
             </p>
 
             <div className="flex flex-wrap items-center gap-4 font-mono text-sm">

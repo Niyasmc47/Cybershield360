@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { BrainCircuit, Terminal, Shield, AlertTriangle, XCircle, CheckCircle } from "lucide-react";
+import { BrainCircuit, Terminal, Shield, AlertTriangle, XCircle, CheckCircle, Clock3 } from "lucide-react";
 import AccountScoreBar from "@/components/account-score-bar";
 import { addTotalScore, syncScoreToDb } from "@/lib/session";
 
@@ -148,6 +148,7 @@ const stories: Story[] = [
 ];
 
 type Screen = "intro" | "playing" | "intermission" | "ended";
+const CHOICE_TIME_LIMIT = 25;
 
 type OutcomeLevel = "safe" | "close" | "compromised" | "scammed";
 
@@ -215,6 +216,7 @@ export default function DecisionChainPage() {
     const [lastFeedback, setLastFeedback] = useState<string | null>(null);
     const [earlyEnd, setEarlyEnd] = useState<"safe" | "close" | null>(null);
     const [storyResults, setStoryResults] = useState<StoryResult[]>([]);
+    const [choiceTimeLeft, setChoiceTimeLeft] = useState(CHOICE_TIME_LIMIT);
     const scoreSyncedRef = useRef(false);
 
     const story = stories[storyIndex];
@@ -250,6 +252,26 @@ export default function DecisionChainPage() {
             }
         }
     }, [screen, storyResults]);
+
+    useEffect(() => {
+        if (screen !== "playing" || !chapter || !!lastFeedback) return;
+        setChoiceTimeLeft(CHOICE_TIME_LIMIT);
+    }, [screen, storyIndex, chapterIndex, lastFeedback, chapter]);
+
+    useEffect(() => {
+        if (screen !== "playing" || !chapter || !!lastFeedback) return;
+
+        if (choiceTimeLeft <= 0) {
+            const safest = chapter.choices.reduce((best, current) =>
+                current.riskDelta < best.riskDelta ? current : best
+            );
+            handleChoice(safest);
+            return;
+        }
+
+        const t = setTimeout(() => setChoiceTimeLeft((s) => s - 1), 1000);
+        return () => clearTimeout(t);
+    }, [screen, chapter, lastFeedback, choiceTimeLeft]);
 
     const handleChoice = (choice: Choice) => {
         const newRisk = Math.max(0, risk + choice.riskDelta);
@@ -344,6 +366,13 @@ export default function DecisionChainPage() {
                         <div className="text-xs text-purple-400 tracking-widest mb-4">
                             STORY {storyIndex + 1} / {stories.length} — {story.title.toUpperCase()}
                         </div>
+
+                        {!lastFeedback && (
+                            <div className="mb-4 inline-flex items-center gap-2 rounded border border-purple-400/30 bg-purple-400/10 px-3 py-1 text-xs text-purple-300">
+                                <Clock3 size={12} />
+                                {choiceTimeLeft}s remaining
+                            </div>
+                        )}
 
                         {/* Risk meter */}
                         <div className="mb-6">

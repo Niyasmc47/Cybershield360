@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Terminal, Users } from "lucide-react";
+import { Clock3, Terminal, Users } from "lucide-react";
 import GameClient from "@/lib/game-client";
 import AccountScoreBar from "@/components/account-score-bar";
 import { addTotalScore, clearSession, getToken, getUser, refreshSessionFromDb, setSession, syncScoreToDb } from "@/lib/session";
@@ -67,6 +67,7 @@ export default function MultiplayerPage() {
   const [username, setUsername] = useState<string>("");
   const [status, setStatus] = useState<"idle" | "waiting" | "playing" | "ended">("idle");
   const [question, setQuestion] = useState<QuestionPayload | null>(null);
+  const [questionTimeLeft, setQuestionTimeLeft] = useState(0);
   const [yourScore, setYourScore] = useState(0);
   const [opponentScore, setOpponentScore] = useState(0);
   const [opponentName, setOpponentName] = useState<string>("");
@@ -100,6 +101,12 @@ export default function MultiplayerPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (status !== "playing" || !question || questionTimeLeft <= 0) return;
+    const t = setTimeout(() => setQuestionTimeLeft((s) => Math.max(0, s - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [status, question, questionTimeLeft]);
+
   function connectSocket(jwtToken: string, currentUserId: string) {
     const client = new GameClient();
 
@@ -107,6 +114,7 @@ export default function MultiplayerPage() {
       onMatchStart: (data: MatchStartPayload) => {
         setStatus("playing");
         setQuestion(null);
+        setQuestionTimeLeft(0);
         setYourScore(0);
         setOpponentScore(0);
         setCreatedRoomCode("");
@@ -116,6 +124,7 @@ export default function MultiplayerPage() {
       },
       onQuestion: (data: QuestionPayload) => {
         setQuestion(data);
+        setQuestionTimeLeft(data.time_limit ?? 30);
         setMatchMessage(`Question ${data.question_number}/${data.total_questions}`);
       },
       onAnswerFeedback: (data: AnswerFeedbackPayload) => {
@@ -136,6 +145,7 @@ export default function MultiplayerPage() {
       onMatchEnd: (data: MatchEndPayload) => {
         setStatus("ended");
         setQuestion(null);
+        setQuestionTimeLeft(0);
 
         const p1Score = data.player1_score ?? 0;
         const p2Score = data.player2_score ?? 0;
@@ -157,6 +167,7 @@ export default function MultiplayerPage() {
         setError(data?.message || "Something went wrong");
       },
       onDisconnect: () => {
+        setQuestionTimeLeft(0);
         setMatchMessage("Disconnected from game server.");
       },
     });
@@ -443,8 +454,12 @@ export default function MultiplayerPage() {
 
             {question && status === "playing" && (
               <div className="space-y-3">
-                <div className="text-xs text-secondary">
-                  Q{question.question_number}/{question.total_questions} • {question.type}
+                <div className="flex items-center justify-between text-xs text-secondary">
+                  <span>Q{question.question_number}/{question.total_questions} • {question.type}</span>
+                  <span className={`inline-flex items-center gap-1 ${questionTimeLeft > 10 ? "text-neon-green" : questionTimeLeft > 5 ? "text-yellow-400" : "text-red-400"}`}>
+                    <Clock3 size={12} />
+                    {questionTimeLeft}s
+                  </span>
                 </div>
                 <h3 className="text-sm leading-relaxed">{question.question_text}</h3>
 
