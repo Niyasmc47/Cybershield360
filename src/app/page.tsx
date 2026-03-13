@@ -29,6 +29,15 @@ export default function Home() {
   const [isHydrated, setIsHydrated] = useState(false);
   const [currentYear, setCurrentYear] = useState(2024);
 
+  const buildBackendHeaders = (includeJson = false) => {
+    const backendUrl = getBackendUrl();
+    const isNgrok = backendUrl.includes("ngrok-free.app") || backendUrl.includes("ngrok.app");
+    return {
+      ...(includeJson ? { "Content-Type": "application/json" } : {}),
+      ...(isNgrok ? { "ngrok-skip-browser-warning": "1" } : {}),
+    };
+  };
+
   useEffect(() => {
     // Set hydration flag and initialize time on client only
     setIsHydrated(true);
@@ -46,7 +55,9 @@ export default function Home() {
     window.addEventListener("storage", onSessionChange);
 
     // Load community scam list
-    fetch(`${getBackendUrl()}/api/community/list`)
+    fetch(`${getBackendUrl()}/api/community/list`, {
+      headers: buildBackendHeaders(),
+    })
       .then(r => r.json())
       .then(d => Array.isArray(d) && setCommunityList(d.slice(0, 8)))
       .catch(() => {});
@@ -452,7 +463,7 @@ export default function Home() {
                       try {
                         const res = await fetch(`${getBackendUrl()}/api/community/report`, {
                           method: "POST",
-                          headers: { "Content-Type": "application/json" },
+                          headers: buildBackendHeaders(true),
                           body: JSON.stringify({ url: communityUrl.trim(), reason: communityReason.trim(), reporter: "anonymous" }),
                         });
                         const d = await res.json();
@@ -461,7 +472,9 @@ export default function Home() {
                           setCommunityUrl("");
                           setCommunityReason("");
                           // Refresh list
-                          fetch(`${getBackendUrl()}/api/community/list`).then(r => r.json()).then(d => Array.isArray(d) && setCommunityList(d.slice(0, 8))).catch(() => {});
+                          fetch(`${getBackendUrl()}/api/community/list`, {
+                            headers: buildBackendHeaders(),
+                          }).then(r => r.json()).then(d => Array.isArray(d) && setCommunityList(d.slice(0, 8))).catch(() => {});
                         } else {
                           setCommunityMsg({ ok: false, text: d.error || "Failed to report." });
                         }
