@@ -16,7 +16,12 @@ export default function LeaderboardPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch(`${getBackendUrl()}/api/leaderboard/global`)
+        const backendUrl = getBackendUrl();
+        const isNgrok = backendUrl.includes("ngrok-free.app") || backendUrl.includes("ngrok.app");
+
+        fetch(`${backendUrl}/api/leaderboard/global`, {
+            headers: isNgrok ? { "ngrok-skip-browser-warning": "1" } : {},
+        })
             .then((res) => res.json())
             .then((data) => setEntries(data))
             .catch(() => setEntries([]))

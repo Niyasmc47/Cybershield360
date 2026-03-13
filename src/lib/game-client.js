@@ -35,7 +35,8 @@ class GameClient {
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
-      reconnectionAttempts: 5
+      reconnectionAttempts: 5,
+      transports: ['websocket']
     });
 
     // Connection events
@@ -272,7 +273,11 @@ class GameClient {
    */
   static async getLeaderboard() {
     try {
-      const response = await fetch(`${getBackendUrl()}/api/leaderboard`);
+      const backendUrl = getBackendUrl();
+      const isNgrok = backendUrl.includes('ngrok-free.app') || backendUrl.includes('ngrok.app');
+      const response = await fetch(`${backendUrl}/api/leaderboard`, {
+        headers: isNgrok ? { 'ngrok-skip-browser-warning': '1' } : {}
+      });
       const data = await response.json();
 
       if (!response.ok) {
